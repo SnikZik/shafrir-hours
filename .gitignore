@@ -1,0 +1,7 @@
+.secret
+dist/
+.DS_Store
+messages.local.json
+.manager_email
+.remind_emails
+.report_emails
