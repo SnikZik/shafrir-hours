@@ -240,8 +240,8 @@ function threadMail_(ss, action, now, note) {
     var props = PropertiesService.getScriptProperties();
     var thread = JSON.parse(props.getProperty('thread') || '{}');
     var today = dateKey_(now);
-    var isNew = thread.date !== today;
-    if (isNew) thread = { date: today, subject: CONFIG.EMPLOYEE + ', יום עבודה ' + Utilities.formatDate(now, CONFIG.TZ, 'dd/MM/yyyy') };
+    var isNew = thread.date !== today || thread.to !== CONFIG.THREAD_EMAILS;
+    if (isNew) thread = { date: today, to: CONFIG.THREAD_EMAILS, subject: CONFIG.EMPLOYEE + ', יום עבודה ' + Utilities.formatDate(now, CONFIG.TZ, 'dd/MM/yyyy') };
     var headers = [
       'To: ' + CONFIG.THREAD_EMAILS,
       'Subject: =?UTF-8?B?' + Utilities.base64Encode(thread.subject, Utilities.Charset.UTF_8) + '?=',
