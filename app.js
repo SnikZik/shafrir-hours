@@ -126,6 +126,7 @@
     reportAction = action;
     $('report-title').textContent = action === 'end' ? 'סיום יום' : 'יציאה להפסקה';
     $('report-ok').textContent = action === 'end' ? 'סיימתי לעבוד' : 'יצאתי להפסקה';
+    $('report-hint').textContent = action === 'end' ? 'מה עשית היום? כמה מילים, לא חובה' : 'למה יצאת להפסקה? כמה מילים, לא חובה';
     $('report-text').value = '';
     micStatus.textContent = SpeechRecognition ? '' : 'אפשר להכתיב עם המיקרופון במקלדת';
     $('report-mic').hidden = !SpeechRecognition;

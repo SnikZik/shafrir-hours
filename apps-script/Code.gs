@@ -10,6 +10,7 @@ var CONFIG = {
   REMIND_EMAILS: '__REMIND_EMAILS__', // comma separated, mailed when nothing was pressed for REMIND_HOURS
   REMIND_HOURS: 3,
   REPORT_EMAILS: '__REPORT_EMAILS__', // comma separated, gets the day summary with notes on clock out
+  THREAD_EMAILS: '__THREAD_EMAILS__', // comma separated, one email thread per day with every press
   APP_URL: 'https://snikzik.github.io/shafrir-hours/?k='
 };
 
@@ -102,6 +103,7 @@ function apply_(ss, action, now, note) {
   appendLog_(ss, action, now, note || message);
   if (action === 'start' || action === 'end') notifyManager_(ss, action);
   if (action === 'end') sendDayReport_(ss);
+  threadMail_(ss, action, now, note);
   return { message: message };
 }
 
@@ -218,6 +220,82 @@ function sendDayReport_(ss) {
     console.error(err);
     hours.getRange(row, 8).setValue('מייל סיכום לא נשלח');
   }
+}
+
+// One Gmail thread per day: the first press of the day opens it, every later press replies in it.
+// Sent through the Gmail advanced service so In-Reply-To/References keep it threaded for the recipient.
+function threadMail_(ss, action, now, note) {
+  if (!CONFIG.THREAD_EMAILS) return;
+  var hours = ss.getSheetByName(HOURS_TAB);
+  try {
+    SpreadsheetApp.flush();
+    var lines = [LABELS[action] + ' בשעה ' + time_(now) + '.'];
+    if (note) lines.push((action === 'break_start' ? 'סיבה: ' : 'פירוט: ') + note);
+    if (action === 'end') {
+      var day = daySummary_(hours, now);
+      lines.push('', 'סיכום היום', 'התחלה ' + day.start, 'סיום ' + time_(now),
+        'הפסקות ' + (day.breaks || 'אין'), 'סה"כ שעות עבודה ' + day.total.toFixed(2), '',
+        'מה עשיתי:', day.notes || 'לא נרשם', '', 'קובץ השעות: ' + sheetUrl_());
+    }
+    var props = PropertiesService.getScriptProperties();
+    var thread = JSON.parse(props.getProperty('thread') || '{}');
+    var today = dateKey_(now);
+    var isNew = thread.date !== today;
+    if (isNew) thread = { date: today, subject: CONFIG.EMPLOYEE + ', יום עבודה ' + Utilities.formatDate(now, CONFIG.TZ, 'dd/MM/yyyy') };
+    var headers = [
+      'To: ' + CONFIG.THREAD_EMAILS,
+      'Subject: =?UTF-8?B?' + Utilities.base64Encode(thread.subject, Utilities.Charset.UTF_8) + '?=',
+      'MIME-Version: 1.0',
+      'Content-Type: text/html; charset=UTF-8',
+      'Content-Transfer-Encoding: base64'
+    ];
+    if (!isNew) headers.push('In-Reply-To: ' + thread.msgId, 'References: ' + thread.msgId);
+    var html = '<div dir="rtl" style="font-family:Arial,sans-serif;font-size:15px">' +
+      lines.map(function (l) { return linkify_(escapeHtml_(l)); }).join('<br>').replace(/\n/g, '<br>') + '</div>';
+    var raw = headers.join('\r\n') + '\r\n\r\n' + Utilities.base64Encode(html, Utilities.Charset.UTF_8);
+    var resource = { raw: Utilities.base64EncodeWebSafe(raw) };
+    if (!isNew) resource.threadId = thread.threadId;
+    var sent = Gmail.Users.Messages.send(resource, 'me');
+    if (isNew) {
+      thread.threadId = sent.threadId;
+      var meta = Gmail.Users.Messages.get('me', sent.id, { format: 'metadata', metadataHeaders: ['Message-ID'] });
+      thread.msgId = meta.payload.headers.filter(function (h) { return /^message-id$/i.test(h.name); })[0].value;
+      props.setProperty('thread', JSON.stringify(thread));
+    }
+  } catch (err) {
+    console.error(err);
+    hours.getRange(shiftRow_(hours), 8).setValue('מייל לשרשור לא נשלח');
+  }
+}
+
+// All shifts of the given day together: first start, breaks, net hours and notes.
+function daySummary_(hours, now) {
+  var last = shiftRow_(hours);
+  var out = { start: '', breaks: '', total: 0, notes: '' };
+  if (last < 2) return out;
+  var values = hours.getRange(2, 1, last - 1, 9).getValues();
+  var shown = hours.getRange(2, 1, last - 1, 9).getDisplayValues();
+  values.forEach(function (v, i) {
+    if (!(v[0] instanceof Date) || dateKey_(v[0]) !== dateKey_(now)) return;
+    var d = shown[i];
+    if (!out.start) out.start = d[2];
+    if (d[4]) out.breaks += (out.breaks ? ', ' : '') + d[4];
+    out.total += Number(v[6]) || 0;
+    if (d[8]) out.notes += (out.notes ? '\n' : '') + d[8];
+  });
+  return out;
+}
+
+function sheetUrl_() {
+  return 'https://docs.google.com/spreadsheets/d/' + CONFIG.SHEET_ID + '/edit';
+}
+
+function escapeHtml_(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function linkify_(s) {
+  return s.replace(/https:\/\/\S+/g, function (u) { return '<a href="' + u + '">' + u + '</a>'; });
 }
 
 function notifyManager_(ss, action) {

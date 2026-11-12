@@ -12,6 +12,7 @@ source = source.replace("__SHEET_ID__", sheet_id).replace("__KEY__", (root / ".s
 source = source.replace("__MANAGER_EMAIL__", (root / ".manager_email").read_text().strip())
 source = source.replace("__REMIND_EMAILS__", (root / ".remind_emails").read_text().strip())
 source = source.replace("__REPORT_EMAILS__", (root / ".report_emails").read_text().strip())
+source = source.replace("__THREAD_EMAILS__", (root / ".thread_emails").read_text().strip())
 messages = (root / "messages.local.json").read_text(encoding="utf-8")
 lines = [line for group in json.loads(messages).values() for line in group]
 repeats = [line for line, count in collections.Counter(lines).items() if count > 1]

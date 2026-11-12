@@ -5,3 +5,4 @@ messages.local.json
 .manager_email
 .remind_emails
 .report_emails
+.thread_emails
