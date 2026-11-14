@@ -6,3 +6,4 @@ messages.local.json
 .remind_emails
 .report_emails
 .thread_emails
+.manager_key

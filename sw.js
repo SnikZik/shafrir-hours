@@ -1,5 +1,5 @@
 // Network first for the app shell, cache only as an offline fallback. API calls are never cached.
-var CACHE = 'hours-v1';
+var CACHE = 'hours-v2';
 var SHELL = ['./', 'index.html', 'app.js', 'config.js', 'manifest.webmanifest', 'icon-192.png'];
 
 self.addEventListener('install', function (e) {

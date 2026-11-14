@@ -16,95 +16,163 @@
 <link rel="icon" href="icon-192.png">
 <style>
 :root{
-  --bg:#14342f; --ink:#f4f1e8; --muted:#a9bfb7; --card:#1c443d;
+  --bg:#14342f; --ink:#f4f1e8; --muted:#a9bfb7; --card:#1c443d; --line:#2b574f;
   --start:#e9b44c; --start-ink:#2b2005;
   --break:#f4f1e8; --break-ink:#14342f;
   --end:#d9674e; --end-ink:#fff8f4;
+  --ok:#7fd1a8; --warn:#f0a35e;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;margin:0}
+html{background:var(--bg)}
 body{
-  background:var(--bg);color:var(--ink);
+  margin:0;background:var(--bg);color:var(--ink);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Hebrew",Arial,sans-serif;
-  display:flex;flex-direction:column;
-  padding:max(20px,env(safe-area-inset-top)) 16px max(20px,env(safe-area-inset-bottom));
-  max-width:480px;margin-inline:auto;
-  -webkit-user-select:none;user-select:none;
+  padding:max(20px,env(safe-area-inset-top)) 16px max(28px,env(safe-area-inset-bottom));
+  max-width:520px;margin-inline:auto;
 }
-header{padding:8px 4px 20px}
+header{padding:4px 4px 16px}
 #hello{margin:0;font-size:17px;color:var(--muted);font-weight:500}
-#status{margin:6px 0 0;font-size:30px;font-weight:800;line-height:1.15}
-#clock{margin:18px 0 0;font-size:64px;font-weight:300;line-height:1;font-variant-numeric:tabular-nums;direction:ltr;text-align:right}
-#detail{margin:10px 0 0;font-size:16px;color:var(--muted);min-height:1.4em}
-main{flex:1;display:flex;flex-direction:column;gap:12px;min-height:0}
+#status{margin:6px 0 0;font-size:28px;font-weight:800;line-height:1.15}
+#clock{margin:12px 0 0;font-size:56px;font-weight:300;line-height:1;font-variant-numeric:tabular-nums;direction:ltr;text-align:right}
+#detail{margin:8px 0 0;font-size:15px;color:var(--muted);min-height:1.3em}
+.actions{display:flex;gap:10px}
 button{
-  flex:1;min-height:84px;width:100%;border:0;border-radius:20px;
-  font:inherit;font-size:25px;font-weight:800;cursor:pointer;
+  border:0;border-radius:18px;font:inherit;font-weight:800;cursor:pointer;
   transition:transform .08s ease,opacity .2s ease;
 }
 button:active:not(:disabled){transform:scale(.98)}
-button:disabled{opacity:.22;cursor:default}
+button:disabled{opacity:.25;cursor:default}
 button:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.actions button{flex:1;min-height:76px;font-size:22px}
+.actions button[hidden]{display:none}
 #start{background:var(--start);color:var(--start-ink)}
 #pause{background:var(--break);color:var(--break-ink)}
 #end{background:var(--end);color:var(--end-ink)}
-body.busy main button{opacity:.22}
+body.busy .actions button,body.busy .task button{opacity:.25;pointer-events:none}
 #toast{
-  margin:14px 0 0;min-height:44px;padding:11px 14px;border-radius:14px;
+  margin:12px 0 0;min-height:42px;padding:10px 14px;border-radius:14px;
   font-size:16px;text-align:center;background:transparent;color:transparent;
 }
 #toast.show{background:var(--card);color:var(--ink)}
 #toast.err{background:#5c2318;color:#ffe6df}
-#report{
+h2{margin:18px 4px 10px;font-size:19px;font-weight:800}
+#tasks{display:flex;flex-direction:column;gap:10px}
+.empty{color:var(--muted);font-size:16px;padding:6px 4px}
+.task{background:var(--card);border:2px solid transparent;border-radius:18px;padding:14px 14px 12px}
+.task.active{border-color:var(--start)}
+.task-top{display:flex;align-items:flex-start;gap:10px}
+.task-title{flex:1;margin:0;font-size:19px;font-weight:700;line-height:1.3;cursor:pointer}
+.task-state{font-size:14px;font-weight:700;color:var(--muted);white-space:nowrap;padding-top:3px}
+.task-state.stuck{color:var(--end)}
+.task-state.review{color:var(--ok)}
+.bar{height:10px;border-radius:6px;background:var(--line);margin:12px 0 8px;overflow:hidden}
+.bar span{display:block;height:100%;background:var(--start);border-radius:6px}
+.task-meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:14px;color:var(--muted)}
+.task-meta .late{color:var(--warn);font-weight:700}
+.task-live{font-weight:700;color:var(--start);font-variant-numeric:tabular-nums}
+.task-actions{display:flex;gap:8px;margin-top:12px}
+.task-actions button{flex:1;min-height:48px;font-size:17px;background:var(--line);color:var(--ink)}
+.task-actions button.on{background:var(--start);color:var(--start-ink)}
+.done-list{margin-top:6px}
+.done-list summary{cursor:pointer;color:var(--muted);font-size:16px;padding:8px 4px}
+
+/* Sheets */
+.sheet{
   position:fixed;inset:0;display:flex;align-items:flex-end;justify-content:center;
-  padding:16px 16px max(16px,env(safe-area-inset-bottom));background:rgba(9,28,25,.82);z-index:10;
+  padding:12px 12px max(12px,env(safe-area-inset-bottom));background:rgba(9,28,25,.84);z-index:10;
 }
-#report[hidden]{display:none}
-#report-card{
-  width:100%;max-width:440px;padding:24px 20px 20px;border-radius:24px;
+.sheet[hidden]{display:none}
+.card{
+  width:100%;max-width:480px;max-height:92vh;overflow:auto;padding:22px 18px 18px;border-radius:24px;
   background:var(--ink);color:var(--bg);display:flex;flex-direction:column;gap:10px;
 }
-#report-title{margin:0;font-size:24px;font-weight:800}
-#report-hint{font-size:16px;color:#4b625b}
-#report-text{
-  width:100%;min-height:110px;padding:12px 14px;border:2px solid #c9d3cf;border-radius:14px;
-  font:inherit;font-size:18px;line-height:1.4;color:var(--bg);background:#fff;resize:vertical;
-  -webkit-user-select:text;user-select:text;
+.card h3{margin:0;font-size:23px;font-weight:800;line-height:1.25}
+.hint{font-size:15px;color:#4b625b;margin:0}
+textarea,input[type=text]{
+  width:100%;padding:11px 13px;border:2px solid #c9d3cf;border-radius:14px;
+  font:inherit;font-size:17px;line-height:1.4;color:var(--bg);background:#fff;resize:vertical;
 }
-#report-text:focus{outline:none;border-color:var(--bg)}
-#report-card button{flex:none;min-height:56px;font-size:20px}
-#report-mic{background:#e3e9e6;color:var(--bg)}
-#report-mic.on{background:var(--end);color:var(--end-ink)}
-#report-mic-status{margin:0;min-height:1.3em;font-size:15px;color:#4b625b}
-#report-ok{background:var(--bg);color:var(--ink);min-height:64px}
-#report-cancel{background:transparent;color:var(--bg);min-height:48px;font-size:18px;font-weight:600}
-#report-card button:focus-visible{outline-color:var(--start)}
+textarea{min-height:84px}
+textarea:focus,input:focus{outline:none;border-color:var(--bg)}
+.card button{min-height:52px;font-size:18px}
+.primary{background:var(--bg);color:var(--ink);min-height:60px!important}
+.ghost{background:transparent;color:var(--bg);font-weight:600}
+.soft{background:#e3e9e6;color:var(--bg)}
+.mic.on{background:var(--end);color:var(--end-ink)}
+.mic-status{margin:0;min-height:1.2em;font-size:14px;color:#4b625b}
+.row{display:flex;gap:8px;align-items:center}
+.row > *{flex:1}
+.block{border:2px solid #dfe5e2;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.block-title{margin:0;font-size:18px;font-weight:800}
+.pct{display:flex;align-items:center;gap:12px}
+.pct input{flex:1;accent-color:var(--bg);height:32px}
+.pct output{min-width:56px;font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;text-align:left;direction:ltr}
+.pick{display:flex;align-items:center;gap:12px;padding:12px;border:2px solid #dfe5e2;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer}
+.pick input{width:24px;height:24px;accent-color:var(--bg)}
+.pick small{display:block;font-weight:400;color:#4b625b;font-size:14px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:#e9eeeb;border-radius:12px;padding:10px;text-align:center}
+.stat b{display:block;font-size:20px}
+.stat span{font-size:13px;color:#4b625b}
+.desc{white-space:pre-wrap;font-size:16px;line-height:1.5;margin:0}
+.list{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.list li{background:#eef2f0;border-radius:12px;padding:10px 12px;font-size:15px;line-height:1.45}
+.list .who{font-weight:800}
+.list .when{color:#4b625b;font-size:13px}
+.question{background:#fbe3dc;border-radius:12px;padding:10px 12px;font-size:16px}
+h4{margin:8px 0 0;font-size:16px}
 </style>
 </head>
 <body>
 <header>
   <p id="hello">שלום שניר</p>
   <p id="status" role="status" aria-live="polite">טוען</p>
-  <p id="clock" aria-hidden="true">0:00:00</p>
+  <p id="clock" aria-hidden="true">0:00</p>
   <p id="detail"></p>
 </header>
-<main>
+<div class="actions">
   <button id="start" disabled>התחלתי לעבוד</button>
-  <button id="pause" disabled>יצאתי להפסקה</button>
-  <button id="end" disabled>סיימתי לעבוד</button>
-</main>
+  <button id="pause" hidden>יצאתי להפסקה</button>
+  <button id="end" hidden>סיימתי לעבוד</button>
+</div>
 <p id="toast"></p>
-<div id="report" role="dialog" aria-modal="true" aria-labelledby="report-title" hidden>
-  <div id="report-card">
-    <p id="report-title"></p>
-    <label id="report-hint" for="report-text">מה עשית? כמה מילים, לא חובה</label>
-    <textarea id="report-text" dir="rtl"></textarea>
-    <button id="report-mic" type="button">הקלטה קולית</button>
-    <p id="report-mic-status" aria-live="polite"></p>
-    <button id="report-ok" type="button"></button>
-    <button id="report-cancel" type="button">ביטול</button>
+<h2>המשימות שלי</h2>
+<div id="tasks"><p class="empty">טוען משימות</p></div>
+<details class="done-list" id="done-wrap" hidden><summary id="done-sum"></summary><div id="done" class="list"></div></details>
+
+<div id="pick" class="sheet" role="dialog" aria-modal="true" aria-labelledby="pick-title" hidden>
+  <div class="card">
+    <h3 id="pick-title">על מה אתה עובד?</h3>
+    <p class="hint">אפשר לבחור כמה משימות. הזמן מתחלק ביניהן.</p>
+    <div id="pick-list" class="list"></div>
+    <button id="pick-ok" class="primary" type="button"></button>
+    <button id="pick-cancel" class="ghost" type="button">ביטול</button>
   </div>
 </div>
+
+<div id="report" class="sheet" role="dialog" aria-modal="true" aria-labelledby="report-title" hidden>
+  <div class="card">
+    <h3 id="report-title"></h3>
+    <div id="report-tasks" class="list"></div>
+    <div id="report-general">
+      <label id="report-general-label" class="hint" for="report-general-text"></label>
+      <textarea id="report-general-text" dir="rtl"></textarea>
+      <div class="row"><button class="soft mic" type="button" data-target="report-general-text">הקלטה קולית</button></div>
+    </div>
+    <p class="mic-status" id="mic-status" aria-live="polite"></p>
+    <button id="report-ok" class="primary" type="button"></button>
+    <button id="report-cancel" class="ghost" type="button">ביטול</button>
+  </div>
+</div>
+
+<div id="detail-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="d-title" hidden>
+  <div class="card">
+    <h3 id="d-title"></h3>
+    <div id="d-body"></div>
+    <button id="d-close" class="ghost" type="button">סגירה</button>
+  </div>
+</div>
+
 <script src="config.js"></script>
 <script src="app.js"></script>
 </body>
