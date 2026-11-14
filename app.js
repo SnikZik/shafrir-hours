@@ -388,6 +388,36 @@
   });
   el.end.addEventListener('click', function () { openReport('end'); });
 
+  // Desktop only: Shafrir's eyes and head follow the mouse.
+  (function watcher() {
+    var box = $('watcher');
+    if (!box || !window.matchMedia('(min-width: 1000px) and (pointer: fine)').matches) return;
+    box.hidden = false;
+    var tilt = box.querySelector('.tilt');
+    var eyes = Array.prototype.slice.call(box.querySelectorAll('.eye'));
+    var frame = 0, mx = 0, my = 0;
+    function move() {
+      frame = 0;
+      var r = tilt.getBoundingClientRect();
+      var cx = r.left + r.width / 2, cy = r.top + r.height * 0.42;
+      var nx = Math.max(-1, Math.min(1, (mx - cx) / (innerWidth * 0.6)));
+      var ny = Math.max(-1, Math.min(1, (my - cy) / (innerHeight * 0.6)));
+      tilt.style.transform = 'rotateY(' + (nx * 14).toFixed(1) + 'deg) rotateX(' + (-ny * 10).toFixed(1) + 'deg)';
+      eyes.forEach(function (e) {
+        var b = e.getBoundingClientRect();
+        var dx = mx - (b.left + b.width / 2), dy = my - (b.top + b.height / 2);
+        var d = Math.sqrt(dx * dx + dy * dy) || 1;
+        var k = Math.min(1, d / 200);
+        var px = dx / d * k * (e.offsetWidth / 2 - 4), py = dy / d * k * (e.offsetHeight / 2 - 2);
+        e.firstChild.style.transform = 'translate(' + px.toFixed(1) + 'px,' + py.toFixed(1) + 'px)';
+      });
+    }
+    document.addEventListener('mousemove', function (ev) {
+      mx = ev.clientX; my = ev.clientY;
+      if (!frame) frame = requestAnimationFrame(move);
+    });
+  })();
+
   if (!key) {
     el.status.textContent = 'חסר קישור התקנה';
     el.detail.textContent = 'צריך לפתוח את קישור ההתקנה המלא';
