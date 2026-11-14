@@ -124,7 +124,6 @@
       var late = t.deadline < nowMs() + 2 * 86400000 && t.pct < 70;
       parts.push('<span class="' + (late ? 'late' : '') + '">עד ' + day(t.deadline) + '</span>');
     }
-    if (t.comments.length) parts.push(t.comments.length + ' הערות');
     return parts.map(function (p) { return '<span>' + p + '</span>'; }).join('');
   }
 
@@ -139,7 +138,7 @@
         '<div class="task-top"><p class="task-title" data-open="' + esc(t.id) + '">' + nt(t) + '</p>' + stateLabel(t) + '</div>' +
         '<div class="bar" role="img" aria-label="' + t.pct + ' אחוז"><span style="width:' + t.pct + '%"></span></div>' +
         '<div class="task-meta"><span><b>' + t.pct + '%</b></span>' + metaLine(t) +
-        (t.active ? '<span class="task-live" data-live="' + esc(t.id) + '"></span>' : '') + '</div>' +
+        (t.active ? '<span class="task-live" data-live="' + esc(t.id) + '"></span>' : '') + '</div>' + notesBlock(t) +
         '<div class="task-actions">' +
         (canToggle ? '<button type="button" class="' + (t.active ? 'on' : '') + '" data-toggle="' + esc(t.id) + '">' + (t.active ? 'עצרתי' : 'לעבוד על זה') + '</button>' : '') +
         '<button type="button" data-open="' + esc(t.id) + '">פרטים</button></div></div>';
@@ -150,6 +149,24 @@
     $('done').innerHTML = done.map(function (t) {
       return '<li data-open="' + esc(t.id) + '"><b>' + nt(t) + '</b><br><span class="when">' + hours(t.minutes) + ' שעות</span></li>';
     }).join('');
+  }
+
+  // Every comment and work update of a task, newest first, opened in place on the card.
+  var openNotes = {};
+  function notesBlock(t) {
+    var items = t.comments.map(function (c) {
+      return { at: c.at, html: '<b>' + esc(c.who) + '</b><br>' + esc(c.text) };
+    }).concat(t.sessions.map(function (x, i) {
+      return { at: x.end, html: '<b>עדכון ' + (i + 1) + '</b> ' + clock(x.start) + ' עד ' + clock(x.end) + ', ' + hm(x.minutes) + ' שעות, ' + x.from + '% עד ' + x.to + '%' + (x.note ? '<br>' + esc(x.note) : '') };
+    }));
+    if (!items.length) return '';
+    items.sort(function (a, b) { return b.at - a.at; });
+    var open = openNotes[t.id];
+    return '<button type="button" class="notes-toggle" data-notes="' + esc(t.id) + '" aria-expanded="' + !!open + '">' +
+      (open ? 'סגירת הערות' : 'פתח הערות') + ' (' + items.length + ')</button>' +
+      (open ? '<ul class="notes-list">' + items.map(function (i) {
+        return '<li><span class="when">' + day(i.at) + ' ' + clock(i.at) + '</span> ' + i.html + '</li>';
+      }).join('') + '</ul>' : '');
   }
 
   function toast(text, isError) {
@@ -353,6 +370,8 @@
   });
 
   document.addEventListener('click', function (e) {
+    var tn = e.target.closest('[data-notes]');
+    if (tn) { var nid = tn.getAttribute('data-notes'); openNotes[nid] = !openNotes[nid]; renderTasks(); tick(); return; }
     var open = e.target.closest('[data-open]');
     if (open) { showDetail(open.getAttribute('data-open')); return; }
     var tog = e.target.closest('[data-toggle]');

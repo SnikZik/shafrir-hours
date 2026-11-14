@@ -166,7 +166,6 @@
     if (t.deadline) parts.push('<span class="' + (atRisk(t) ? 'bad' : '') + '">עד ' + day(t.deadline) + (atRisk(t) ? ', בסיכון' : '') + '</span>');
     var last = t.sessions[t.sessions.length - 1];
     if (last) parts.push('<span>עבד לאחרונה ' + ago(last.end) + '</span>');
-    if (t.comments.length) parts.push('<span>' + t.comments.length + ' הערות</span>');
     return '<div class="meta">' + parts.join('') + '</div>';
   }
 
@@ -178,7 +177,26 @@
     return '<div class="card' + (t.active ? ' active' : '') + '" data-id="' + esc(t.id) + '">' +
       '<div class="card-top">' + (sortable ? '<span class="handle" aria-hidden="true">⠿</span>' : '') +
       '<p class="title" data-open="' + esc(t.id) + '">' + nt(t) + '</p>' + tag(t) + '</div>' +
-      progress(t) + meta(t) + '</div>';
+      progress(t) + meta(t) + notesBlock(t) +
+      '<div class="inline"><button class="btn btn-soft" data-note="' + esc(t.id) + '">הערה לשניר</button></div></div>';
+  }
+
+  // Every comment and work update of a task, newest first, opened in place on the card.
+  var openNotes = {};
+  function notesBlock(t) {
+    var items = t.comments.map(function (c) {
+      return { at: c.at, html: '<span class="who">' + esc(c.who) + '</span><br>' + esc(c.text) };
+    }).concat(t.sessions.map(function (x, i) {
+      return { at: x.end, html: '<span class="who">עדכון ' + (i + 1) + '</span> <span class="when">' + clock(x.start) + ' עד ' + clock(x.end) + ', ' + hm(x.minutes) + ' שעות, ' + x.from + '% עד ' + x.to + '%</span>' + (x.note ? '<br>' + esc(x.note) : '') };
+    }));
+    if (!items.length) return '';
+    items.sort(function (a, b) { return b.at - a.at; });
+    var open = openNotes[t.id];
+    return '<div class="notes"><button class="link" data-notes="' + esc(t.id) + '" aria-expanded="' + !!open + '">' +
+      (open ? 'סגירת הערות' : 'פתח הערות') + ' (' + items.length + ')</button>' +
+      (open ? '<ul class="list notes-list">' + items.map(function (i) {
+        return '<li><span class="when">' + day(i.at) + ' ' + clock(i.at) + '</span> ' + i.html + '</li>';
+      }).join('') + '</ul>' : '') + '</div>';
   }
 
   function waitingCard(t) {
@@ -195,7 +213,7 @@
         '<button class="btn btn-red" data-return="' + esc(t.id) + '">להחזיר לעבודה</button></div>';
     }
     return '<div class="card" data-id="' + esc(t.id) + '"><div class="card-top"><p class="title" data-open="' + esc(t.id) + '">' + esc(t.title) + '</p>' + tag(t) + '</div>' +
-      progress(t) + meta(t) + body + '</div>';
+      progress(t) + meta(t) + notesBlock(t) + body + '</div>';
   }
 
   function renderWeek() {
@@ -303,6 +321,10 @@
 
   // ---------- Clicks ----------
   document.addEventListener('click', function (e) {
+    var tn = e.target.closest('[data-notes]');
+    if (tn) { var id = tn.getAttribute('data-notes'); openNotes[id] = !openNotes[id]; render(data); return; }
+    var n = e.target.closest('[data-note]');
+    if (n) { showDetail(n.getAttribute('data-note')); var box = $('d-comment'); if (box) { box.scrollIntoView({ block: 'center' }); box.focus(); } return; }
     var b = e.target.closest('[data-open],[data-answer],[data-answer-d],[data-approve],[data-return],[data-comment],[data-edit],[data-delete],[data-close],[data-reopen]');
     if (!b) return;
     var get = function (n) { return b.getAttribute(n); };
