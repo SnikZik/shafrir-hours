@@ -177,9 +177,16 @@ function closeTask_(ss, work, id, now, report) {
   var pct = report.pct === undefined || report.pct === '' || report.pct === null ? task.pct : clamp_(report.pct);
   var minutes = Math.round(open.acc * 10) / 10;
   var start = new Date(open.start);
-  ss.getSheetByName(SESSIONS_TAB).appendRow([
+  var sessionsTab = ss.getSheetByName(SESSIONS_TAB);
+  sessionsTab.appendRow([
     start, id, task.title, start, now, minutes, Math.round(minutes / 60 * 100) / 100, open.from, pct, note, weekStart_(start)
   ]);
+  // appendRow gives dates a date-time format, so the row's formats are set explicitly.
+  var r = sessionsTab.getLastRow();
+  sessionsTab.getRange(r, 1).setNumberFormat('dd/MM/yyyy');
+  sessionsTab.getRange(r, 4, 1, 2).setNumberFormat('HH:mm');
+  sessionsTab.getRange(r, 7).setNumberFormat('0.00');
+  sessionsTab.getRange(r, 11).setNumberFormat('dd/MM/yyyy');
   var changes = { pct: pct };
   if (pct >= 100 && task.status !== ST.done) changes.status = ST.review;
   else if (task.status === ST.queue) changes.status = ST.work;
@@ -355,7 +362,9 @@ function setTask_(ss, task, changes, now) {
 }
 
 function addComment_(ss, now, task, who, text) {
-  ss.getSheetByName(COMMENTS_TAB).appendRow([now, task.id, task.title, who, text]);
+  var sheet = ss.getSheetByName(COMMENTS_TAB);
+  sheet.appendRow([now, task.id, task.title, who, text]);
+  sheet.getRange(sheet.getLastRow(), 1).setNumberFormat('dd/MM/yyyy HH:mm');
 }
 
 function readRows_(ss, tab, cols) {
