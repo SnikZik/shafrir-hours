@@ -127,7 +127,7 @@ textarea:focus,input:focus{outline:none;border-color:var(--bg)}
 h4{margin:8px 0 0;font-size:16px}
 
 /* Desktop only: Shafrir watches the cursor. Eye positions are measured on shafrir.jpg (280x280). */
-#watcher{position:fixed;top:24px;left:24px;width:200px;z-index:5;text-align:center;direction:ltr}
+#watcher{width:200px;margin:4px auto 18px;text-align:center;direction:ltr}
 #watcher p{direction:rtl}
 #watcher[hidden]{display:none}
 #watcher .face{position:relative;width:280px;height:280px;margin-bottom:-80px;transform:scale(.714);transform-origin:0 0;perspective:700px}
@@ -139,6 +139,7 @@ h4{margin:8px 0 0;font-size:16px}
 </style>
 </head>
 <body>
+<div id="watcher" hidden aria-hidden="true" data-caption="שפריר רואה הכל"></div>
 <header>
   <p id="hello">שלום שניר</p>
   <p id="status" role="status" aria-live="polite">טוען</p>
@@ -188,7 +189,6 @@ h4{margin:8px 0 0;font-size:16px}
   </div>
 </div>
 
-<div id="watcher" hidden aria-hidden="true" data-caption="שפריר רואה הכל"></div>
 <script src="config.js?v=3"></script>
 <script src="app.js?v=6"></script>
 <script src="watcher.js?v=1"></script>
