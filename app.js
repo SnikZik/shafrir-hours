@@ -30,6 +30,9 @@
     return fetch(url, options).then(function (r) { return r.json(); });
   }
 
+  function num(t) { return t.id.replace(/^T/, '') + '. '; }
+  function nt(t) { return esc(num(t) + t.title); }
+
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -133,7 +136,7 @@
     $('tasks').innerHTML = open.length ? open.map(function (t) {
       var canToggle = working && OPEN.indexOf(t.status) >= 0;
       return '<div class="task' + (t.active ? ' active' : '') + '">' +
-        '<div class="task-top"><p class="task-title" data-open="' + esc(t.id) + '">' + esc(t.title) + '</p>' + stateLabel(t) + '</div>' +
+        '<div class="task-top"><p class="task-title" data-open="' + esc(t.id) + '">' + nt(t) + '</p>' + stateLabel(t) + '</div>' +
         '<div class="bar" role="img" aria-label="' + t.pct + ' אחוז"><span style="width:' + t.pct + '%"></span></div>' +
         '<div class="task-meta"><span><b>' + t.pct + '%</b></span>' + metaLine(t) +
         (t.active ? '<span class="task-live" data-live="' + esc(t.id) + '"></span>' : '') + '</div>' +
@@ -143,8 +146,9 @@
     }).join('') : '<p class="empty">אין משימות פתוחות. שפריר מוסיף משימות מהלוח שלו.</p>';
     $('done-wrap').hidden = !done.length;
     $('done-sum').textContent = 'הושלמו (' + done.length + ')';
+    done.sort(function (a, b) { return b.updated - a.updated; });
     $('done').innerHTML = done.map(function (t) {
-      return '<li data-open="' + esc(t.id) + '"><b>' + esc(t.title) + '</b><br><span class="when">' + hours(t.minutes) + ' שעות</span></li>';
+      return '<li data-open="' + esc(t.id) + '"><b>' + nt(t) + '</b><br><span class="when">' + hours(t.minutes) + ' שעות</span></li>';
     }).join('');
   }
 
@@ -242,7 +246,7 @@
     $('pick-ok').textContent = action === 'break_end' ? 'חזרתי מהפסקה' : 'התחלתי לעבוד';
     $('pick-list').innerHTML = open.length ? open.map(function (t) {
       return '<label class="pick"><input type="checkbox" value="' + esc(t.id) + '"' + (pre.indexOf(t.id) >= 0 ? ' checked' : '') + '>' +
-        '<span>' + esc(t.title) + '<small>' + t.pct + '%, ' + esc(t.status) + '</small></span></label>';
+        '<span>' + nt(t) + '<small>' + t.pct + '%, ' + esc(t.status) + '</small></span></label>';
     }).join('') : '<p class="hint">אין משימות פתוחות. אפשר להתחיל בלי משימה.</p>';
     $('pick').hidden = false;
   }
@@ -266,7 +270,7 @@
     $('report-general-label').textContent = action === 'end' ? 'הערה כללית ליום, לא חובה' : 'למה יצאת להפסקה? לא חובה';
     $('report-general-text').value = '';
     $('report-tasks').innerHTML = tasks.map(function (t, i) {
-      return '<div class="block" data-task="' + esc(t.id) + '"><p class="block-title">' + esc(t.title) + '</p>' +
+      return '<div class="block" data-task="' + esc(t.id) + '"><p class="block-title">' + nt(t) + '</p>' +
         '<label class="hint" for="rn' + i + '">מה עשית? כמה מילים</label>' +
         '<textarea id="rn' + i + '" dir="rtl"></textarea>' + micMarkup('rn' + i) +
         '<label class="hint" for="rp' + i + '">כמה המשימה מוכנה עכשיו?</label>' +
@@ -299,7 +303,7 @@
     if (!t) { closeDetail(); return; }
     openDetail = id;
     if (keepInputs && !$('detail-sheet').hidden && document.activeElement && document.activeElement.closest('#detail-sheet textarea')) return;
-    $('d-title').textContent = t.title;
+    $('d-title').textContent = num(t) + t.title;
     var forecast = t.pct > 0 && t.pct < 100 ? hours(totalMinutes(t) * (100 - t.pct) / t.pct) + ' שעות' : '';
     var html = '<div class="stats"><div class="stat"><b>' + t.pct + '%</b><span>התקדמות</span></div>' +
       '<div class="stat"><b>' + hours(totalMinutes(t)) + '</b><span>שעות' + (t.est !== '' && t.est != null ? ' מתוך ' + t.est : '') + '</span></div>' +
@@ -319,8 +323,8 @@
     }).join('') + '</ul>' : '<p class="hint">אין הערות עדיין</p>') +
       '<textarea id="d-comment" dir="rtl" placeholder="הערה לשפריר"></textarea>' +
       '<button type="button" class="soft" data-comment="' + esc(t.id) + '">שליחת הערה</button>';
-    html += '<h4>היסטוריית עבודה</h4>' + (t.sessions.length ? '<ul class="list">' + t.sessions.slice().reverse().map(function (s) {
-      return '<li><span class="who">' + day(s.start) + ' ' + clock(s.start) + ' עד ' + clock(s.end) + '</span> <span class="when">' + hm(s.minutes) + ' שעות, ' + s.from + '% עד ' + s.to + '%</span>' +
+    html += '<h4>היסטוריית עבודה</h4>' + (t.sessions.length ? '<ul class="list">' + t.sessions.map(function (s, i) { s.n = i + 1; return s; }).slice().reverse().map(function (s) {
+      return '<li><span class="who">עדכון ' + s.n + ':</span> <span class="who">' + day(s.start) + ' ' + clock(s.start) + ' עד ' + clock(s.end) + '</span> <span class="when">' + hm(s.minutes) + ' שעות, ' + s.from + '% עד ' + s.to + '%</span>' +
         (s.note ? '<br>' + esc(s.note) : '') + '</li>';
     }).join('') + '</ul>' : '<p class="hint">עוד לא עבדת על המשימה</p>');
     $('d-body').innerHTML = html;

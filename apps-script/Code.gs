@@ -188,17 +188,17 @@ function closeTask_(ss, work, id, now, report) {
   sessionsTab.getRange(r, 7).setNumberFormat('0.00');
   sessionsTab.getRange(r, 11).setNumberFormat('dd/MM/yyyy');
   var changes = { pct: pct };
-  if (pct >= 100 && task.status !== ST.done) changes.status = ST.review;
+  if (pct >= 100 && task.status !== ST.done) changes.status = ST.done;
   else if (task.status === ST.queue) changes.status = ST.work;
   setTask_(ss, task, changes, now);
   if (note || pct !== open.from) {
     addNote_(ss.getSheetByName(HOURS_TAB), now, task.title + ': ' + (note || 'עדכון התקדמות') + ' (' + open.from + '% עד ' + pct + '%)');
   }
-  if (changes.status === ST.review) {
+  if (changes.status === ST.done) {
     threadSend_(ss, now, [
-      'המשימה "' + task.title + '" הגיעה ל-100% ומחכה לאישור שלך.',
+      tname_(task) + ' הושלמה (100%).',
       note ? 'מה נעשה: ' + note : '',
-      'לאשר או להחזיר: ' + boardUrl_()
+      'לוח המשימות: ' + boardUrl_()
     ]);
   }
   return '';
@@ -221,7 +221,7 @@ function taskTalk_(ss, work, p, now, who) {
     setTask_(ss, task, { status: ST.stuck, question: text }, now);
     addComment_(ss, now, task, name, 'שאלה: ' + text);
     threadSend_(ss, now, [
-      CONFIG.EMPLOYEE + ' תקוע במשימה "' + task.title + '" ומחכה לתשובה שלך.',
+      CONFIG.EMPLOYEE + ' תקוע ב' + tname_(task) + ' ומחכה לתשובה שלך.',
       'השאלה: ' + text,
       'לענות: ' + boardUrl_()
     ]);
@@ -254,7 +254,7 @@ function manage_(ss, p, now) {
     sheet.getRange(row, 9).setFormula('=ROUND(SUMIF(\'' + SESSIONS_TAB + '\'!B:B,A' + row + ',\'' + SESSIONS_TAB + '\'!G:G),2)');
     sheet.getRange(row, 6).setNumberFormat('dd/MM/yyyy');
     sheet.getRange(row, 10, 1, 2).setNumberFormat('dd/MM/yyyy HH:mm');
-    snirMail_('משימה חדשה מ' + CONFIG.MANAGER + ': ' + f.title, [
+    snirMail_('משימה חדשה ' + id.slice(1) + ' מ' + CONFIG.MANAGER + ': ' + f.title, [
       f.desc, f.est ? 'הערכה: ' + f.est + ' שעות' : '', f.deadline ? 'עד ' + fmtDate_(f.deadline) : ''
     ]);
     return {};
@@ -284,7 +284,7 @@ function manage_(ss, p, now) {
       saveWork_(work);
     }
     setTask_(ss, findTask_(ss, task.id), { status: ST.deleted }, now);
-    snirMail_(CONFIG.MANAGER + ' מחק את המשימה "' + task.title + '"', ['']);
+    snirMail_(CONFIG.MANAGER + ' מחק את ' + tname_(task), ['']);
     return {};
   }
   if (action === 'answer') {
@@ -292,14 +292,14 @@ function manage_(ss, p, now) {
     var back = task.status === ST.stuck ? (task.pct > 0 ? ST.work : ST.queue) : task.status;
     setTask_(ss, task, { status: back, question: '' }, now);
     addComment_(ss, now, task, CONFIG.MANAGER, text);
-    snirMail_(CONFIG.MANAGER + ' ענה על "' + task.title + '"', [task.question ? 'השאלה: ' + task.question : '', 'התשובה: ' + text]);
+    snirMail_(CONFIG.MANAGER + ' ענה על ' + tname_(task), [task.question ? 'השאלה: ' + task.question : '', 'התשובה: ' + text]);
     return {};
   }
   if (action === 'approve') {
     if (task.status !== ST.review) return { error: 'invalid_state' };
     setTask_(ss, task, { status: ST.done }, now);
     addComment_(ss, now, task, CONFIG.MANAGER, text ? 'אושר: ' + text : 'אושר');
-    snirMail_(CONFIG.MANAGER + ' אישר את "' + task.title + '"', [text]);
+    snirMail_(CONFIG.MANAGER + ' אישר את ' + tname_(task), [text]);
     return {};
   }
   if (action === 'return') {
@@ -307,13 +307,13 @@ function manage_(ss, p, now) {
     if (!text) return { error: 'empty' };
     setTask_(ss, task, { status: ST.work }, now);
     addComment_(ss, now, task, CONFIG.MANAGER, 'הוחזר: ' + text);
-    snirMail_(CONFIG.MANAGER + ' החזיר את "' + task.title + '"', ['מה צריך: ' + text]);
+    snirMail_(CONFIG.MANAGER + ' החזיר את ' + tname_(task), ['מה צריך: ' + text]);
     return {};
   }
   if (action === 'comment') {
     if (!text) return { error: 'empty' };
     addComment_(ss, now, task, CONFIG.MANAGER, text);
-    snirMail_('הערה מ' + CONFIG.MANAGER + ' על "' + task.title + '"', [text]);
+    snirMail_('הערה מ' + CONFIG.MANAGER + ' על ' + tname_(task), [text]);
     return {};
   }
   return { error: 'bad_action' };
@@ -542,7 +542,7 @@ function sendDaySummary_(ss, now, note) {
     lines.push('', 'לפי משימות:');
     ids.forEach(function (id) {
       var t = perTask[id];
-      lines.push('', t.title + ': ' + (t.minutes / 60).toFixed(2) + ' שעות, ' + t.from + '% עד ' + t.to + '%');
+      lines.push('', 'משימה ' + id.slice(1) + ', ' + t.title + ': ' + (t.minutes / 60).toFixed(2) + ' שעות, ' + t.from + '% עד ' + t.to + '%');
       t.notes.forEach(function (n) { lines.push('  ' + n); });
     });
   }
@@ -753,6 +753,10 @@ function weekStart_(d) {
   var day = Number(Utilities.formatDate(d, CONFIG.TZ, 'u')) % 7; // Sunday 0
   var base = Utilities.parseDate(key, CONFIG.TZ, 'yyyy-MM-dd');
   return new Date(base.getTime() - day * 86400000);
+}
+
+function tname_(task) {
+  return 'משימה ' + task.id.slice(1) + ' "' + task.title + '"';
 }
 
 function fmtDate_(d) {

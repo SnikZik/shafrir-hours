@@ -24,6 +24,8 @@
     return fetch(url, options).then(function (r) { return r.json(); });
   }
 
+  function nt(t) { return esc(t.id.replace(/^T/, '') + '. ' + t.title); }
+
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -175,7 +177,7 @@
   function card(t, sortable) {
     return '<div class="card' + (t.active ? ' active' : '') + '" data-id="' + esc(t.id) + '">' +
       '<div class="card-top">' + (sortable ? '<span class="handle" aria-hidden="true">⠿</span>' : '') +
-      '<p class="title" data-open="' + esc(t.id) + '">' + esc(t.title) + '</p>' + tag(t) + '</div>' +
+      '<p class="title" data-open="' + esc(t.id) + '">' + nt(t) + '</p>' + tag(t) + '</div>' +
       progress(t) + meta(t) + '</div>';
   }
 
@@ -214,7 +216,7 @@
     $('n-week').textContent = hm(total);
     var rows = data.tasks.filter(function (t) { return per[t.id]; }).sort(function (a, b) { return per[b.id] - per[a.id]; });
     $('week').innerHTML = rows.length ? rows.map(function (t) {
-      return '<div class="week-row"><span>' + esc(t.title) + '</span><b>' + hm(per[t.id]) + '</b></div>';
+      return '<div class="week-row"><span>' + nt(t) + '</span><b>' + hm(per[t.id]) + '</b></div>';
     }).join('') + '<div class="week-row week-total"><span>סה"כ על משימות</span><b>' + hm(total) + '</b></div>' : '<p class="when" style="margin:0">עוד לא נרשמו שעות השבוע</p>';
     var max = Math.max.apply(null, perDay.concat([60]));
     var names = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
@@ -226,8 +228,8 @@
   function renderFeed() {
     var items = [];
     data.tasks.forEach(function (t) {
-      t.sessions.forEach(function (s) {
-        items.push({ at: s.end, html: '<span class="who"><bdi>' + esc(t.title) + '</bdi></span>: ' + hm(s.minutes) + ' שעות, ' + s.from + '% עד ' + s.to + '%' + (s.note ? '<br>' + esc(s.note) : '') });
+      t.sessions.forEach(function (s, i) {
+        items.push({ at: s.end, html: '<span class="who"><bdi>' + nt(t) + '</bdi>, עדכון ' + (i + 1) + '</span>: ' + hm(s.minutes) + ' שעות, ' + s.from + '% עד ' + s.to + '%' + (s.note ? '<br>' + esc(s.note) : '') });
       });
       t.comments.forEach(function (c) {
         items.push({ at: c.at, html: '<span class="who">' + esc(c.who) + '</span> על <bdi>' + esc(t.title) + '</bdi>: ' + esc(c.text) });
@@ -245,7 +247,7 @@
     if (!t) { $('detail').close(); return; }
     detailId = id;
     var f = forecast(t);
-    var html = '<div class="card-top"><h3 style="flex:1">' + esc(t.title) + '</h3>' + tag(t) + '</div>' +
+    var html = '<div class="card-top"><h3 style="flex:1">' + nt(t) + '</h3>' + tag(t) + '</div>' +
       progress(t) +
       '<div class="stats">' +
       '<div class="stat"><b>' + hrs(minutesOf(t)) + '</b><span>שעות בפועל</span></div>' +
@@ -259,8 +261,8 @@
     }).join('') + '</ul>' : '<p class="when" style="margin:0">אין הערות</p>') +
       '<div class="inline"><textarea id="d-comment" rows="1" placeholder="' + (t.status === 'תקוע' ? 'התשובה שלך לשניר' : 'הערה לשניר') + '"></textarea>' +
       '<button class="btn btn-main" data-' + (t.status === 'תקוע' ? 'answer-d' : 'comment') + '="' + esc(t.id) + '">שליחה</button></div>';
-    html += '<h2 style="margin-top:6px">מתי עבד ומה עשה</h2>' + (t.sessions.length ? '<ul class="list">' + t.sessions.slice().reverse().map(function (s) {
-      return '<li><span class="who">' + day(s.start) + ', ' + clock(s.start) + ' עד ' + clock(s.end) + '</span> <span class="when">' + hm(s.minutes) + ' שעות, ' + s.from + '% עד ' + s.to + '%</span>' + (s.note ? '<br>' + esc(s.note) : '') + '</li>';
+    html += '<h2 style="margin-top:6px">מתי עבד ומה עשה</h2>' + (t.sessions.length ? '<ul class="list">' + t.sessions.map(function (s, i) { s.n = i + 1; return s; }).slice().reverse().map(function (s) {
+      return '<li><span class="who">עדכון ' + s.n + ': ' + day(s.start) + ', ' + clock(s.start) + ' עד ' + clock(s.end) + '</span> <span class="when">' + hm(s.minutes) + ' שעות, ' + s.from + '% עד ' + s.to + '%</span>' + (s.note ? '<br>' + esc(s.note) : '') + '</li>';
     }).join('') + '</ul>' : '<p class="when" style="margin:0">עוד לא עבד על המשימה</p>');
     html += '<div class="actions" style="margin-top:6px">' +
       (t.status === 'ממתין לאישור' ? '<button class="btn btn-green" data-approve="' + esc(t.id) + '">אישור, הושלם</button>' : '') +

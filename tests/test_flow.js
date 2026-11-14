@@ -66,7 +66,7 @@ boss({ action: 'task_add', task: { title: 'חשבונות טוויטר', est: ''
 ok(boss({ action: 'task_add', task: { title: '  ' } }, -8).error === 'empty', 'empty title refused');
 ok(boss({ action: 'task_add', task: { title: 'x', deadline: '20/11' } }, -8).error === 'bad_deadline', 'bad deadline refused');
 ok(sheets['משימות'].rows.length === 3 && sheets['משימות'].rows[1][0] === 'T1' && sheets['משימות'].rows[2][0] === 'T2', 'tasks T1, T2 in sheet');
-ok(mails.length === 2 && mails[0].subject.includes('אפיון מערכת'), 'Snir mailed on new task');
+ok(mails.length === 2 && mails[0].subject.includes('משימה חדשה 1') && mails[0].subject.includes('אפיון מערכת'), 'Snir mailed on new task, numbered');
 
 // 07:00 start on both tasks; 08:00 break: each got half of the hour.
 snir({ action: 'start', tasks: ['T1', 'T2'] }, 0);
@@ -81,8 +81,8 @@ snir({ action: 'break_end', tasks: ['T1'] }, 90);
 snir({ action: 'task_on', id: 'T2' }, 120);
 ok(Math.abs(task('T1', 150).active.minutes - 45) < 0.01, 'live minutes: 30 alone + 15 shared');
 snir({ action: 'task_off', id: 'T2', note: 'פתחתי 3 חשבונות', pct: 100 }, 180);
-ok(task('T2', 180).status === 'ממתין לאישור', '100% goes to waiting for approval');
-ok(gmail.length === 1 && gmail[0].body.includes('מחכה לאישור'), 'Shafrir mailed about approval');
+ok(task('T2', 180).status === 'הושלם', '100% means done, no approval wait');
+ok(gmail.length === 1 && gmail[0].body.includes('משימה 2 "חשבונות טוויטר" הושלמה'), 'Shafrir mailed that task 2 is done');
 
 // 10:20 Snir is stuck on T1: its stretch closes and Shafrir gets the question in the same day thread.
 snir({ action: 'block', id: 'T1', text: 'איזה פורמט למסמך?' }, 200);
@@ -95,8 +95,7 @@ ok(gmail.length === 2 && gmail[1].threadId === 't0' && /In-Reply-To: <m0@mail>/.
 boss({ action: 'answer', id: 'T1', text: 'Google Docs' }, 205);
 ok(task('T1', 205).status === 'בעבודה' && task('T1', 205).question === '', 'answer unblocks');
 ok(boss({ action: 'approve', id: 'T1' }, 206).error === 'invalid_state', 'cannot approve a task not waiting');
-boss({ action: 'approve', id: 'T2', text: 'מעולה' }, 206);
-ok(task('T2', 206).status === 'הושלם', 'approved task is done');
+ok(boss({ action: 'approve', id: 'T2' }, 206).error === 'invalid_state', 'nothing waits for approval any more');
 ok(snir({ action: 'task_on', id: 'T2' }, 207).error === 'task_closed', 'done task cannot be opened');
 boss({ action: 'reorder', order: ['T2', 'T1'] }, 207);
 ok(task('T1', 207).order === 2 && task('T2', 207).order === 1, 'reorder saved');
@@ -109,7 +108,7 @@ const end = view(240);
 ok(end.state === 'off' && !end.tasks.some(x => x.active), 'day closed, nothing active');
 ok(task('T1', 240).pct === 60 && Math.abs(task('T1', 240).minutes - 140) < 0.01, 'T1 at 60% after 140 minutes');
 const summary = gmail[gmail.length - 1].body;
-ok(summary.includes('לפי משימות') && summary.includes('אפיון מערכת: 2.33 שעות, 0% עד 60%') && summary.includes('חשבונות טוויטר: 1.00 שעות, 0% עד 100%'), 'day summary per task');
+ok(summary.includes('לפי משימות') && summary.includes('משימה 1, אפיון מערכת: 2.33 שעות, 0% עד 60%') && summary.includes('משימה 2, חשבונות טוויטר: 1.00 שעות, 0% עד 100%'), 'day summary per task');
 ok(summary.includes('manager.html?m=' + ctx.CONFIG.MANAGER_KEY), 'summary links the board');
 ok(mails.some(m => m.subject.startsWith('שפריר, סיכום יום')), 'Snir gets the day summary too');
 const shiftHours = sheets['שעות'].rows[1];

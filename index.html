@@ -73,8 +73,8 @@ h2{margin:18px 4px 10px;font-size:19px;font-weight:800}
 .task-actions{display:flex;gap:8px;margin-top:12px}
 .task-actions button{flex:1;min-height:48px;font-size:17px;background:var(--line);color:var(--ink)}
 .task-actions button.on{background:var(--start);color:var(--start-ink)}
-.done-list{margin-top:6px}
-.done-list summary{cursor:pointer;color:var(--muted);font-size:16px;padding:8px 4px}
+#done li{background:var(--card);color:var(--ink);border-radius:14px;padding:12px 14px;cursor:pointer;font-size:16px;line-height:1.4}
+#done .when{color:var(--muted);font-size:14px}
 
 /* Sheets */
 .sheet{
@@ -138,7 +138,7 @@ h4{margin:8px 0 0;font-size:16px}
 <p id="toast"></p>
 <h2>המשימות שלי</h2>
 <div id="tasks"><p class="empty">טוען משימות</p></div>
-<details class="done-list" id="done-wrap" hidden><summary id="done-sum"></summary><div id="done" class="list"></div></details>
+<section id="done-wrap" hidden><h2 id="done-sum"></h2><ul id="done" class="list done"></ul></section>
 
 <div id="pick" class="sheet" role="dialog" aria-modal="true" aria-labelledby="pick-title" hidden>
   <div class="card">
