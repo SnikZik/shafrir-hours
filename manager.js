@@ -33,6 +33,14 @@
   }
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   function hm(min) { min = Math.round(min); return Math.floor(min / 60) + ':' + pad(min % 60); }
+  // Time is shown in minutes; from an hour up, hours and minutes.
+  function dur(min) {
+    min = Math.round(min);
+    if (min < 60) return min + ' דקות';
+    var h = Math.floor(min / 60), m = min % 60;
+    var hs = h === 1 ? 'שעה' : h === 2 ? 'שעתיים' : h + ' שעות';
+    return m ? hs + ' ו' + m + ' דקות' : hs;
+  }
   function hrs(min) { return (min / 60).toFixed(1).replace(/\.0$/, ''); }
   function fmt(ms, o) { return new Date(ms).toLocaleString('he-IL', Object.assign({ timeZone: 'Asia/Jerusalem' }, o)); }
   function day(ms) { return fmt(ms, { day: '2-digit', month: '2-digit' }); }
@@ -160,9 +168,9 @@
   function meta(t) {
     var m = minutesOf(t), parts = [];
     var over = t.est && m / 60 > t.est;
-    parts.push('<span class="' + (over ? 'over' : '') + '">' + hrs(m) + (t.est ? ' מתוך ' + t.est : '') + ' שעות</span>');
+    parts.push('<span class="' + (over ? 'over' : '') + '">' + dur(m) + (t.est ? ' מתוך ' + t.est + ' שעות' : '') + '</span>');
     var f = forecast(t);
-    if (f !== null && t.status !== 'הושלם') parts.push('<span>צפי: עוד ' + hrs(f) + ' שעות</span>');
+    if (f !== null && t.status !== 'הושלם') parts.push('<span>צפי: עוד ' + dur(f) + '</span>');
     if (t.deadline) parts.push('<span class="' + (atRisk(t) ? 'bad' : '') + '">עד ' + day(t.deadline) + (atRisk(t) ? ', בסיכון' : '') + '</span>');
     var last = t.sessions[t.sessions.length - 1];
     if (last) parts.push('<span>עבד לאחרונה ' + ago(last.end) + '</span>');
@@ -187,7 +195,7 @@
     var items = t.comments.map(function (c) {
       return { at: c.at, html: '<span class="who">' + esc(c.who) + '</span><br>' + esc(c.text) };
     }).concat(t.sessions.map(function (x, i) {
-      return { at: x.end, html: '<span class="who">עדכון ' + (i + 1) + '</span> <span class="when">' + clock(x.start) + ' עד ' + clock(x.end) + ', ' + hm(x.minutes) + ' שעות, ' + x.from + '% עד ' + x.to + '%</span>' + (x.note ? '<br>' + esc(x.note) : '') };
+      return { at: x.end, html: '<span class="who">עדכון ' + (i + 1) + '</span> <span class="when">' + clock(x.start) + ' עד ' + clock(x.end) + ', ' + dur(x.minutes) + ', ' + x.from + '% עד ' + x.to + '%</span>' + (x.note ? '<br>' + esc(x.note) : '') };
     }));
     if (!items.length) return '';
     items.sort(function (a, b) { return b.at - a.at; });
@@ -230,16 +238,16 @@
       var extra = t.active ? t.active.minutes + liveExtra(t) : 0;
       if (extra) { per[t.id] = (per[t.id] || 0) + extra; perDay[w.dow] += extra; total += extra; today += extra; }
     });
-    $('n-today').textContent = hm(today);
-    $('n-week').textContent = hm(total);
+    $('n-today').textContent = dur(today);
+    $('n-week').textContent = dur(total);
     var rows = data.tasks.filter(function (t) { return per[t.id]; }).sort(function (a, b) { return per[b.id] - per[a.id]; });
     $('week').innerHTML = rows.length ? rows.map(function (t) {
-      return '<div class="week-row"><span>' + nt(t) + '</span><b>' + hm(per[t.id]) + '</b></div>';
-    }).join('') + '<div class="week-row week-total"><span>סה"כ על משימות</span><b>' + hm(total) + '</b></div>' : '<p class="when" style="margin:0">עוד לא נרשמו שעות השבוע</p>';
+      return '<div class="week-row"><span>' + nt(t) + '</span><b>' + dur(per[t.id]) + '</b></div>';
+    }).join('') + '<div class="week-row week-total"><span>סה"כ על משימות</span><b>' + dur(total) + '</b></div>' : '<p class="when" style="margin:0">עוד לא נרשמו שעות השבוע</p>';
     var max = Math.max.apply(null, perDay.concat([60]));
     var names = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
     $('days').innerHTML = perDay.map(function (m, i) {
-      return '<div title="' + hm(m) + '"><i style="height:' + Math.round(m / max * 60) + 'px"></i>' + names[i] + '</div>';
+      return '<div title="' + dur(m) + '"><i style="height:' + Math.round(m / max * 60) + 'px"></i>' + names[i] + '</div>';
     }).join('');
   }
 
@@ -247,7 +255,7 @@
     var items = [];
     data.tasks.forEach(function (t) {
       t.sessions.forEach(function (s, i) {
-        items.push({ at: s.end, html: '<span class="who"><bdi>' + nt(t) + '</bdi>, עדכון ' + (i + 1) + '</span>: ' + hm(s.minutes) + ' שעות, ' + s.from + '% עד ' + s.to + '%' + (s.note ? '<br>' + esc(s.note) : '') });
+        items.push({ at: s.end, html: '<span class="who"><bdi>' + nt(t) + '</bdi>, עדכון ' + (i + 1) + '</span>: ' + dur(s.minutes) + ', ' + s.from + '% עד ' + s.to + '%' + (s.note ? '<br>' + esc(s.note) : '') });
       });
       t.comments.forEach(function (c) {
         items.push({ at: c.at, html: '<span class="who">' + esc(c.who) + '</span> על <bdi>' + esc(t.title) + '</bdi>: ' + esc(c.text) });
@@ -268,9 +276,9 @@
     var html = '<div class="card-top"><h3 style="flex:1">' + nt(t) + '</h3>' + tag(t) + '</div>' +
       progress(t) +
       '<div class="stats">' +
-      '<div class="stat"><b>' + hrs(minutesOf(t)) + '</b><span>שעות בפועל</span></div>' +
-      '<div class="stat"><b>' + (t.est || 'אין') + '</b><span>הערכה</span></div>' +
-      '<div class="stat"><b>' + (f !== null && t.status !== 'הושלם' ? hrs(f) : 'אין') + '</b><span>צפי לסיום, שעות</span></div>' +
+      '<div class="stat"><b>' + dur(minutesOf(t)) + '</b><span>זמן בפועל</span></div>' +
+      '<div class="stat"><b>' + (t.est ? t.est + ' שעות' : 'אין') + '</b><span>הערכה</span></div>' +
+      '<div class="stat"><b>' + (f !== null && t.status !== 'הושלם' ? dur(f) : 'אין') + '</b><span>צפי לסיום</span></div>' +
       '<div class="stat"><b style="' + (atRisk(t) ? 'color:var(--red)' : '') + '">' + (t.deadline ? day(t.deadline) : 'אין') + '</b><span>דדליין</span></div></div>';
     if (t.desc) html += '<p class="desc">' + esc(t.desc) + '</p>';
     if (t.status === 'תקוע') html += '<div class="ask"><b>שניר שואל:</b> ' + esc(t.question) + '</div>';
@@ -280,7 +288,7 @@
       '<div class="inline"><textarea id="d-comment" rows="1" placeholder="' + (t.status === 'תקוע' ? 'התשובה שלך לשניר' : 'הערה לשניר') + '"></textarea>' +
       '<button class="btn btn-main" data-' + (t.status === 'תקוע' ? 'answer-d' : 'comment') + '="' + esc(t.id) + '">שליחה</button></div>';
     html += '<h2 style="margin-top:6px">מתי עבד ומה עשה</h2>' + (t.sessions.length ? '<ul class="list">' + t.sessions.map(function (s, i) { s.n = i + 1; return s; }).slice().reverse().map(function (s) {
-      return '<li><span class="who">עדכון ' + s.n + ': ' + day(s.start) + ', ' + clock(s.start) + ' עד ' + clock(s.end) + '</span> <span class="when">' + hm(s.minutes) + ' שעות, ' + s.from + '% עד ' + s.to + '%</span>' + (s.note ? '<br>' + esc(s.note) : '') + '</li>';
+      return '<li><span class="who">עדכון ' + s.n + ': ' + day(s.start) + ', ' + clock(s.start) + ' עד ' + clock(s.end) + '</span> <span class="when">' + dur(s.minutes) + ', ' + s.from + '% עד ' + s.to + '%</span>' + (s.note ? '<br>' + esc(s.note) : '') + '</li>';
     }).join('') + '</ul>' : '<p class="when" style="margin:0">עוד לא עבד על המשימה</p>');
     html += '<div class="actions" style="margin-top:6px">' +
       (t.status === 'ממתין לאישור' ? '<button class="btn btn-green" data-approve="' + esc(t.id) + '">אישור, הושלם</button>' : '') +
