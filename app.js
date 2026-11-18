@@ -141,6 +141,7 @@
         (t.active ? '<span class="task-live" data-live="' + esc(t.id) + '"></span>' : '') + '</div>' + notesBlock(t) +
         '<div class="task-actions">' +
         (canToggle ? '<button type="button" class="' + (t.active ? 'on' : '') + '" data-toggle="' + esc(t.id) + '">' + (t.active ? 'עצרתי' : 'לעבוד על זה') + '</button>' : '') +
+        '<button type="button" data-note="' + esc(t.id) + '">הוספת הערה</button>' +
         '<button type="button" data-open="' + esc(t.id) + '">פרטים</button></div></div>';
     }).join('') : '<p class="empty">אין משימות פתוחות. שפריר מוסיף משימות מהלוח שלו.</p>';
     $('done-wrap').hidden = !done.length;
@@ -372,6 +373,13 @@
   document.addEventListener('click', function (e) {
     var tn = e.target.closest('[data-notes]');
     if (tn) { var nid = tn.getAttribute('data-notes'); openNotes[nid] = !openNotes[nid]; renderTasks(); tick(); return; }
+    var note = e.target.closest('[data-note]');
+    if (note) {
+      showDetail(note.getAttribute('data-note'));
+      var box = $('d-comment');
+      if (box) { box.scrollIntoView({ block: 'center' }); box.focus(); }
+      return;
+    }
     var open = e.target.closest('[data-open]');
     if (open) { showDetail(open.getAttribute('data-open')); return; }
     var tog = e.target.closest('[data-toggle]');
